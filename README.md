@@ -122,6 +122,8 @@ python video/ascii_video.py mi_video.mp4
 | `--once`        | Reproduce una sola vez en vez de en bucle infinito          |
 | `--max-frames`  | Límite de fotogramas a procesar (útil para videos largos)  |
 | `--install`     | Deja el video instalado para que se reproduzca al abrir la terminal |
+| `--split-pane`  | Con `--install` y bucle infinito (sin `--once`): abre la animación en un panel nuevo de Windows Terminal en vez de ocupar la terminal principal — puedes seguir escribiendo comandos mientras se reproduce |
+| `--split-ratio` | Fracción de la ventana que ocupa el panel nuevo con `--split-pane` (default: `0.3`) |
 
 ### Ejemplo: a color real, con bordes degradados
 
@@ -129,14 +131,15 @@ python video/ascii_video.py mi_video.mp4
 python video/ascii_video.py mi_video.mp4 --width 70 --truecolor --feather --once
 ```
 
-### Ejemplo: Sixel, con transparencia real de GIF
+### Ejemplo: Sixel, con transparencia real de GIF, "vivo" en un panel aparte
 
 ```bash
-# 1. Prueba primero (sin --install)
+# 1. Prueba primero (sin --install, con --once para que termine solo)
 python video/ascii_video.py mi_baile.gif --sixel --once
 
-# 2. Si se ve bien, instálalo
-python video/ascii_video.py mi_baile.gif --sixel --install
+# 2. Si se ve bien, instálalo en bucle infinito en un panel nuevo,
+#    para verlo mientras sigues trabajando en tu panel principal
+python video/ascii_video.py mi_baile.gif --sixel --width 300 --install --split-pane
 ```
 
 Presiona **Ctrl + C** en cualquier momento para detener la animación.

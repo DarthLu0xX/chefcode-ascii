@@ -115,11 +115,19 @@ def run_video():
         ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
 
     if ask_yes_no("¿Se ve bien? ¿Lo dejo para que se reproduzca al abrir la terminal?", True):
-        once = not ask_yes_no("¿En bucle infinito (como si estuviera 'vivo')? Si dices que sí, la terminal no queda usable hasta que presiones Ctrl+C", False)
+        loop_forever = ask_yes_no("¿En bucle infinito (como si estuviera 'vivo')?", True)
+        once = not loop_forever
+        split_pane = False
+        if loop_forever:
+            split_pane = ask_yes_no(
+                "¿Que se abra en un panel aparte de Windows Terminal para poder seguir escribiendo comandos "
+                "mientras se reproduce? Si dices que no, la terminal principal queda ocupada hasta Ctrl+C",
+                True,
+            )
         if use_sixel:
-            ascii_video.install_permanent(path, width, fps, sixel=True, once=once)
+            ascii_video.install_permanent(path, width, fps, sixel=True, once=once, split_pane=split_pane)
         else:
-            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather, once=once)
+            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather, once=once, split_pane=split_pane)
     else:
         print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
 

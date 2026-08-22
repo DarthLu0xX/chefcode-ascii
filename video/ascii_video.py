@@ -271,12 +271,19 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False)
         print("\n🍳 Chef Code - ¡Hasta la próxima receta!")
 
 
-def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None, sixel=False, once=True):
+def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None,
+                       sixel=False, once=True, split_pane=False, split_ratio=0.3):
     """Agrega al perfil de PowerShell el comando para reproducir esta
     animación cada vez que se abra la terminal (solo Windows). A
     diferencia de una imagen fija, esto vuelve a correr Python en cada
     apertura de terminal, así que necesitas Python + las dependencias
-    de este proyecto instaladas."""
+    de este proyecto instaladas.
+
+    Si split_pane=True (pensado para --once=False, bucle infinito), la
+    animación se abre en un panel nuevo de Windows Terminal en vez de
+    ocupar la terminal principal — así puedes seguir escribiendo
+    comandos en tu panel de siempre mientras el panel nuevo sigue
+    reproduciendo en bucle."""
 
     if platform.system() != "Windows":
         print("⚠️  La instalación automática solo está soportada en Windows (PowerShell).")
@@ -303,25 +310,29 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
     marker_start = "# >>> chefcode-ascii-video >>>"
     marker_end = "# <<< chefcode-ascii-video <<<"
 
-    cmd_parts = [
-        f'& "{sys.executable}"',
-        f'"{script_path}"',
-        f'"{video_abspath}"',
-        f"--width {width}",
-        f"--fps {fps}",
-    ]
+    py_args = [f'"{video_abspath}"', f"--width {width}", f"--fps {fps}"]
     if once:
-        cmd_parts.append("--once")
+        py_args.append("--once")
     if sixel:
-        cmd_parts.append("--sixel")
+        py_args.append("--sixel")
     elif truecolor:
-        cmd_parts.append("--truecolor")
+        py_args.append("--truecolor")
         if feather:
-            cmd_parts.append("--feather")
+            py_args.append("--feather")
         if color:
-            cmd_parts.append(f"--color {color}")
+            py_args.append(f"--color {color}")
 
-    block = "\n".join([marker_start, " ".join(cmd_parts), marker_end])
+    if split_pane:
+        # -w 0 apunta a la ventana de Windows Terminal actual (la que
+        # llamó a este script) en vez de abrir una ventana nueva.
+        command_line = (
+            f"wt -w 0 split-pane -s {split_ratio} -V "
+            f'"{sys.executable}" "{script_path}" ' + " ".join(py_args)
+        )
+    else:
+        command_line = f'& "{sys.executable}" "{script_path}" ' + " ".join(py_args)
+
+    block = "\n".join([marker_start, command_line, marker_end])
 
     existing = ""
     if os.path.exists(profile_path):
@@ -339,7 +350,10 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
         f.write(new_content)
 
     print(f"✅ Instalado en tu perfil de PowerShell: {profile_path}")
-    if once:
+    if split_pane:
+        print("🔄 Cierra y vuelve a abrir la terminal (en Windows Terminal) para verlo.")
+        print("   Se abre en un panel nuevo, en bucle infinito — tu panel principal queda libre para trabajar.")
+    elif once:
         print("🔄 Cierra y vuelve a abrir la terminal para verlo (se reproduce una vez, con --once).")
     else:
         print("🔄 Cierra y vuelve a abrir la terminal para verlo — se reproduce EN BUCLE INFINITO.")
@@ -364,6 +378,8 @@ def main():
     parser.add_argument("--once", action="store_true", help="Reproduce una sola vez en vez de en bucle")
     parser.add_argument("--max-frames", type=int, default=None, help="Límite de fotogramas a procesar (útil para videos largos)")
     parser.add_argument("--install", action="store_true", help="Deja el video instalado para que se reproduzca al abrir la terminal (PowerShell)")
+    parser.add_argument("--split-pane", action="store_true", help="Con --install y bucle infinito (sin --once): abre la animación en un panel nuevo de Windows Terminal en vez de ocupar la terminal principal, para poder seguir trabajando mientras se reproduce.")
+    parser.add_argument("--split-ratio", type=float, default=0.3, help="Fracción de la ventana que ocupa el panel nuevo con --split-pane (default: 0.3)")
 
     args = parser.parse_args()
     bg_color = tuple(int(c.strip()) for c in args.bg_color.split(","))
@@ -380,13 +396,21 @@ def main():
 
     fps = args.fps or source_fps or 15
 
-    print("▶️  Reproduciendo... (Ctrl + C para detener)\n", flush=True)
-    time.sleep(1)
-
-    play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
+    # Con --install y bucle infinito, reproducir aquí primero bloquearía
+    # este mismo proceso para siempre (nunca llegaría a instalar). Se
+    # instala directo; para probar antes de instalar, usa --once.
+    skip_preview = args.install and not args.once
+    if not skip_preview:
+        print("▶️  Reproduciendo... (Ctrl + C para detener)\n", flush=True)
+        time.sleep(1)
+        play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
 
     if args.install:
-        install_permanent(args.video, args.width, fps, truecolor=args.truecolor, feather=args.feather, color=args.color, sixel=args.sixel, once=args.once)
+        install_permanent(
+            args.video, args.width, fps, truecolor=args.truecolor, feather=args.feather,
+            color=args.color, sixel=args.sixel, once=args.once,
+            split_pane=args.split_pane, split_ratio=args.split_ratio,
+        )
 
 
 if __name__ == "__main__":
