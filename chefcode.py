@@ -87,22 +87,38 @@ def run_photo():
 
 def run_video():
     path = ask_path("🎬 Ruta de tu video o GIF")
-    width = ask_int("Ancho del arte en caracteres", 70)
-    fps = ask_int("FPS de reproducción", 15)
-    feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
+
+    print("\n¿Cómo lo quieres renderizar?")
+    print("  1) Bloques de color (texto) — funciona en casi cualquier terminal")
+    print("  2) Sixel (imagen real, pixel por pixel) — sin escalones, respeta transparencia de GIF, pero experimental (Windows Terminal 1.22+) y más lento de procesar")
+    mode = ask("Elige una opción", "1")
+    use_sixel = mode.strip() == "2"
+
+    width = ask_int("Ancho en píxeles reales" if use_sixel else "Ancho del arte en caracteres", 300 if use_sixel else 70)
     max_frames_raw = ask("Límite de fotogramas a procesar (Enter = sin límite, recomendado para clips cortos)", "")
     max_frames = int(max_frames_raw) if max_frames_raw else None
 
-    frames, _ = ascii_video.extract_frames(
-        path, width, invert=False, max_frames=max_frames,
-        truecolor=True, feather=feather, bg_color=(0, 0, 0),
-    )
-
-    print("▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
-    ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
+    if use_sixel:
+        frames, source_fps = ascii_video.extract_frames_sixel(path, width, max_frames=max_frames)
+        fps = ask_int("FPS de reproducción", round(source_fps) or 15)
+        print("\n▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
+        print("Si ves texto/códigos raros en vez de la animación, tu terminal no soporta Sixel.\n")
+        ascii_video.play_ascii(frames, fps=fps, loop=False, sixel=True)
+    else:
+        feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
+        fps = ask_int("FPS de reproducción", 15)
+        frames, _ = ascii_video.extract_frames(
+            path, width, invert=False, max_frames=max_frames,
+            truecolor=True, feather=feather, bg_color=(0, 0, 0),
+        )
+        print("\n▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
+        ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
 
     if ask_yes_no("¿Se ve bien? ¿Lo dejo para que se reproduzca al abrir la terminal?", True):
-        ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather)
+        if use_sixel:
+            ascii_video.install_permanent(path, width, fps, sixel=True)
+        else:
+            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather)
     else:
         print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
 

@@ -221,7 +221,9 @@ def image_to_sixel(image_path, width=None, max_colors=256, alpha_threshold=128):
     palette = pal_img.getpalette()
     pal_px = pal_img.load()
 
-    out = ["\x1bPq", f'"1;1;{w};{h}']
+    # P2=1 en la introducción DCS: los píxeles "sin marcar" (transparentes)
+    # se dejan tal cual en vez de rellenarse con un color de fondo.
+    out = ["\x1bP0;1;0q", f'"1;1;{w};{h}']
     for i in range(len(palette) // 3):
         r, g, b = palette[i * 3: i * 3 + 3]
         out.append(f"#{i};2;{round(r * 100 / 255)};{round(g * 100 / 255)};{round(b * 100 / 255)}")

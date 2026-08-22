@@ -115,9 +115,10 @@ python video/ascii_video.py mi_video.mp4
 | `--fps`         | Velocidad de reproducción en fotogramas por segundo (default: 15) |
 | `--color`       | Color del texto (ignorado con `--truecolor`)               |
 | `--truecolor`   | Renderiza con bloques `▀` a color real (24-bit), igual que en las fotos |
+| `--sixel`       | Dibuja cada fotograma como imagen real (protocolo Sixel), sin escalones. Con GIF, respeta la transparencia real de cada fotograma (Pillow, no cv2). Experimental (Windows Terminal 1.22+). Ignora `--truecolor`/`--color`/`--invert`/`--feather` |
 | `--feather`     | Solo con `--truecolor`. Degrada los bordes de cada fotograma hacia el fondo |
 | `--bg-color`    | Color de fondo como `"R,G,B"` (default: `0,0,0`), usado por `--feather` |
-| `--invert`      | Invierte tonos claros/oscuros (ignorado con `--truecolor`) |
+| `--invert`      | Invierte tonos claros/oscuros (ignorado con `--truecolor`/`--sixel`) |
 | `--once`        | Reproduce una sola vez en vez de en bucle infinito          |
 | `--max-frames`  | Límite de fotogramas a procesar (útil para videos largos)  |
 | `--install`     | Deja el video instalado para que se reproduzca al abrir la terminal |
@@ -128,10 +129,21 @@ python video/ascii_video.py mi_video.mp4
 python video/ascii_video.py mi_video.mp4 --width 70 --truecolor --feather --once
 ```
 
+### Ejemplo: Sixel, con transparencia real de GIF
+
+```bash
+# 1. Prueba primero (sin --install)
+python video/ascii_video.py mi_baile.gif --sixel --once
+
+# 2. Si se ve bien, instálalo
+python video/ascii_video.py mi_baile.gif --sixel --install
+```
+
 Presiona **Ctrl + C** en cualquier momento para detener la animación.
 
 > 💡 Tip: videos cortos (5-15 segundos) funcionan mejor. Videos muy largos tardan más en procesarse antes de reproducirse.
 > ⚠️ A diferencia de una imagen fija, `--install` en el video vuelve a correr Python cada vez que abres la terminal (con `--once`, para no bloquear la sesión en un loop infinito). Necesitas Python y las dependencias de este proyecto instaladas en la máquina donde uses la terminal.
+> ⚠️ `--sixel` en video es más lento de procesar que `--truecolor` (cada fotograma se cuantiza a color real). Con `--install`, eso significa que **cada terminal nueva tarda esos mismos segundos en aparecer** antes de reproducir la animación — para un GIF de ~50 fotogramas cuenta con varios segundos de espera. Si te importa más la velocidad de arranque que la calidad, usa `--truecolor` en su lugar, o `--max-frames` para recortar el clip.
 
 ---
 

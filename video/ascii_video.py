@@ -20,6 +20,7 @@ import platform
 
 import cv2
 import numpy as np
+from PIL import Image, ImageSequence
 
 ASCII_CHARS = "@%#*+=-:. "
 
@@ -98,6 +99,118 @@ def frame_to_ansi_truecolor(frame, width, feather=False, bg_color=(0, 0, 0)):
     return "\n".join(lines)
 
 
+def _pil_frame_to_sixel(img, width=None, max_colors=256, alpha_threshold=128):
+    """Igual que image_to_sixel de fixed/ascii_fixed.py pero recibe un
+    Image de Pillow ya cargado (un fotograma), en vez de una ruta."""
+    has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+    img = img.convert("RGBA") if has_alpha else img.convert("RGB")
+
+    if width:
+        aspect = img.height / img.width
+        new_h = max(int(round(width * aspect)), 1)
+        img = img.resize((width, new_h), Image.LANCZOS)
+
+    w, h = img.size
+    rgb = img.convert("RGB")
+    alpha_px = img.split()[-1].load() if has_alpha else None
+
+    pal_img = rgb.convert("P", palette=Image.ADAPTIVE, colors=max_colors)
+    palette = pal_img.getpalette()
+    pal_px = pal_img.load()
+
+    out = ["\x1bP0;1;0q", f'"1;1;{w};{h}']
+    for i in range(len(palette) // 3):
+        r, g, b = palette[i * 3: i * 3 + 3]
+        out.append(f"#{i};2;{round(r * 100 / 255)};{round(g * 100 / 255)};{round(b * 100 / 255)}")
+
+    for band_start in range(0, h, 6):
+        band_rows = min(6, h - band_start)
+        color_cols = {}
+        for x in range(w):
+            for r in range(band_rows):
+                y = band_start + r
+                if alpha_px and alpha_px[x, y] < alpha_threshold:
+                    continue
+                c = pal_px[x, y]
+                bits = color_cols.setdefault(c, [0] * w)
+                bits[x] |= 1 << r
+
+        first = True
+        for c in sorted(color_cols):
+            if not first:
+                out.append("$")
+            first = False
+            out.append(f"#{c}")
+            bits = color_cols[c]
+            i = 0
+            while i < w:
+                b = bits[i]
+                run = 1
+                while i + run < w and bits[i + run] == b:
+                    run += 1
+                ch = chr(0x3F + b)
+                out.append(f"!{run}{ch}" if run > 3 else ch * run)
+                i += run
+        out.append("-")
+
+    if out[-1] == "-":
+        out.pop()
+    out.append("\x1b\\")
+    return "".join(out)
+
+
+def extract_frames_sixel(path, width, max_frames=None):
+    """Extrae fotogramas y los codifica como Sixel (imagen real, sin
+    escalones). Los GIF se leen con Pillow (respeta la transparencia
+    real de cada fotograma, cosa que cv2 no hace); otros formatos de
+    video se leen con cv2, igual que en extract_frames."""
+    if not os.path.exists(path):
+        print(f"❌ No se encontró el archivo: {path}")
+        sys.exit(1)
+
+    print("👨‍🍳 Cocinando los fotogramas, un momento...")
+
+    frames = []
+    fps = 15
+
+    if os.path.splitext(path)[1].lower() == ".gif":
+        gif = Image.open(path)
+        durations = []
+        count = 0
+        for frame in ImageSequence.Iterator(gif):
+            frames.append(_pil_frame_to_sixel(frame.convert("RGBA"), width=width))
+            durations.append(frame.info.get("duration", 100) or 100)
+            count += 1
+            if max_frames and count >= max_frames:
+                break
+        if durations:
+            fps = 1000 / (sum(durations) / len(durations))
+    else:
+        cap = cv2.VideoCapture(path)
+        if not cap.isOpened():
+            print(f"❌ No se pudo abrir el video: {path}")
+            sys.exit(1)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 24
+        count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(_pil_frame_to_sixel(Image.fromarray(rgb), width=width))
+            count += 1
+            if max_frames and count >= max_frames:
+                break
+        cap.release()
+
+    if not frames:
+        print("❌ No se pudieron extraer fotogramas.")
+        sys.exit(1)
+
+    print(f"✅ {len(frames)} fotogramas listos.\n")
+    return frames, fps
+
+
 def extract_frames(video_path, width, invert=False, max_frames=None,
                     truecolor=False, feather=False, bg_color=(0, 0, 0)):
     if not os.path.exists(video_path):
@@ -137,9 +250,10 @@ def extract_frames(video_path, width, invert=False, max_frames=None,
     return frames, source_fps
 
 
-def play_ascii(frames, fps, color=None, loop=True, truecolor=False):
-    color_code = COLOR_CODES.get(color, "") if (color and not truecolor) else ""
-    reset = COLOR_CODES["reset"] if (color and not truecolor) else ""
+def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False):
+    plain = truecolor or sixel
+    color_code = COLOR_CODES.get(color, "") if (color and not plain) else ""
+    reset = COLOR_CODES["reset"] if (color and not plain) else ""
     delay = 1.0 / max(fps, 1)
 
     try:
@@ -157,7 +271,7 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False):
         print("\n🍳 Chef Code - ¡Hasta la próxima receta!")
 
 
-def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None):
+def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None, sixel=False):
     """Agrega al perfil de PowerShell el comando para reproducir esta
     animación cada vez que se abra la terminal (solo Windows). A
     diferencia de una imagen fija, esto vuelve a correr Python en cada
@@ -197,12 +311,14 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
         f"--fps {fps}",
         "--once",
     ]
-    if truecolor:
+    if sixel:
+        cmd_parts.append("--sixel")
+    elif truecolor:
         cmd_parts.append("--truecolor")
-    if feather:
-        cmd_parts.append("--feather")
-    if color:
-        cmd_parts.append(f"--color {color}")
+        if feather:
+            cmd_parts.append("--feather")
+        if color:
+            cmd_parts.append(f"--color {color}")
 
     block = "\n".join([marker_start, " ".join(cmd_parts), marker_end])
 
@@ -232,32 +348,40 @@ def main():
         description="Chef Code - Reproduce un video como animación ASCII en tu terminal"
     )
     parser.add_argument("video", help="Ruta al video o GIF (mp4, gif, mov, etc.)")
-    parser.add_argument("--width", type=int, default=80, help="Ancho del arte ASCII en caracteres (default: 80)")
-    parser.add_argument("--fps", type=int, default=15, help="Fotogramas por segundo de reproducción (default: 15)")
-    parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor)")
+    parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 80 en modo texto, 300 con --sixel.")
+    parser.add_argument("--fps", type=int, default=None, help="Fotogramas por segundo de reproducción (default: 15, o la velocidad real del GIF con --sixel si no se especifica)")
+    parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor/--sixel)")
     parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo, igual que en fixed/ascii_fixed.py.")
+    parser.add_argument("--sixel", action="store_true", help="Dibuja cada fotograma como imagen real (protocolo Sixel), sin escalones. Respeta la transparencia real de los GIF. Experimental (Windows Terminal 1.22+). Ignora --truecolor/--color/--invert/--feather.")
     parser.add_argument("--feather", action="store_true", help="Degrada los bordes de cada fotograma hacia el color de fondo (solo con --truecolor).")
     parser.add_argument("--bg-color", default="0,0,0", help="Color de fondo de tu terminal como 'R,G,B' (default: 0,0,0), usado por --feather.")
-    parser.add_argument("--invert", action="store_true", help="Invierte los tonos claros/oscuros (ignorado con --truecolor)")
+    parser.add_argument("--invert", action="store_true", help="Invierte los tonos claros/oscuros (ignorado con --truecolor/--sixel)")
     parser.add_argument("--once", action="store_true", help="Reproduce una sola vez en vez de en bucle")
     parser.add_argument("--max-frames", type=int, default=None, help="Límite de fotogramas a procesar (útil para videos largos)")
     parser.add_argument("--install", action="store_true", help="Deja el video instalado para que se reproduzca al abrir la terminal (PowerShell)")
 
     args = parser.parse_args()
     bg_color = tuple(int(c.strip()) for c in args.bg_color.split(","))
+    if args.width is None:
+        args.width = 300 if args.sixel else 80
 
-    frames, source_fps = extract_frames(
-        args.video, args.width, args.invert, max_frames=args.max_frames,
-        truecolor=args.truecolor, feather=args.feather, bg_color=bg_color,
-    )
+    if args.sixel:
+        frames, source_fps = extract_frames_sixel(args.video, args.width, max_frames=args.max_frames)
+    else:
+        frames, source_fps = extract_frames(
+            args.video, args.width, args.invert, max_frames=args.max_frames,
+            truecolor=args.truecolor, feather=args.feather, bg_color=bg_color,
+        )
+
+    fps = args.fps or source_fps or 15
 
     print("▶️  Reproduciendo... (Ctrl + C para detener)\n")
     time.sleep(1)
 
-    play_ascii(frames, fps=args.fps, color=args.color, loop=not args.once, truecolor=args.truecolor)
+    play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
 
     if args.install:
-        install_permanent(args.video, args.width, args.fps, truecolor=args.truecolor, feather=args.feather, color=args.color)
+        install_permanent(args.video, args.width, fps, truecolor=args.truecolor, feather=args.feather, color=args.color, sixel=args.sixel)
 
 
 if __name__ == "__main__":
