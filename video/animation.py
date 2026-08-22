@@ -308,6 +308,52 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False,
         print("\n🍳 Chef Code - ¡Hasta la próxima receta!")
 
 
+MARKER_START = "# >>> chefcode-ascii-video >>>"
+MARKER_END = "# <<< chefcode-ascii-video <<<"
+
+
+def _get_profile_path():
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "echo $PROFILE"],
+            capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        print(f"❌ No se pudo obtener la ruta de $PROFILE: {e}")
+        return None
+
+
+def uninstall():
+    """Quita el video instalado del perfil de PowerShell, si hay uno.
+    Si estaba en un --split-pane, el panel que ya está abierto no se
+    cierra solo -- ciérralo a mano (o dale Ctrl+C) si sigue corriendo."""
+    if platform.system() != "Windows":
+        print("⚠️  Nada que desinstalar: la instalación automática solo aplica en Windows (PowerShell).")
+        return
+
+    profile_path = _get_profile_path()
+    if not profile_path or not os.path.exists(profile_path):
+        print("ℹ️  No había nada instalado.")
+        return
+
+    with open(profile_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    if MARKER_START not in content or MARKER_END not in content:
+        print("ℹ️  No había ningún video instalado en tu perfil.")
+        return
+
+    before = content.split(MARKER_START)[0]
+    after = content.split(MARKER_END)[1]
+    with open(profile_path, "w", encoding="utf-8") as f:
+        f.write(before + after)
+
+    print(f"✅ Desinstalado de tu perfil de PowerShell: {profile_path}")
+    print("🔄 Cierra y vuelve a abrir la terminal para verlo.")
+
+
 def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None,
                        sixel=False, once=True, split_pane=False, split_ratio=0.3):
     """Agrega al perfil de PowerShell el comando para reproducir esta
@@ -326,16 +372,8 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
         print("⚠️  La instalación automática solo está soportada en Windows (PowerShell).")
         return
 
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "echo $PROFILE"],
-            capture_output=True, text=True, check=True
-        )
-        profile_path = result.stdout.strip()
-    except Exception as e:
-        print(f"❌ No se pudo obtener la ruta de $PROFILE: {e}")
+    profile_path = _get_profile_path()
+    if not profile_path:
         return
 
     profile_dir = os.path.dirname(profile_path)
@@ -344,8 +382,8 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
     script_path = os.path.abspath(__file__)
     video_abspath = os.path.abspath(video_path)
 
-    marker_start = "# >>> chefcode-ascii-video >>>"
-    marker_end = "# <<< chefcode-ascii-video <<<"
+    marker_start = MARKER_START
+    marker_end = MARKER_END
 
     py_args = [f'"{video_abspath}"', f"--width {width}", f"--fps {fps}"]
     if once:
@@ -403,7 +441,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Terminal Perrona - Reproduce un video como animación real en tu terminal"
     )
-    parser.add_argument("video", help="Ruta al video o GIF (mp4, gif, mov, etc.)")
+    parser.add_argument("video", nargs="?", default=None, help="Ruta al video o GIF (mp4, gif, mov, etc.). No hace falta con --uninstall.")
+    parser.add_argument("--uninstall", action="store_true", help="Quita el video instalado de tu perfil de PowerShell y termina (no necesita ruta de video).")
     parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 80 en modo texto, 300 con --sixel.")
     parser.add_argument("--fps", type=int, default=None, help="Fotogramas por segundo de reproducción (default: 15, o la velocidad real del GIF con --sixel si no se especifica)")
     parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor/--sixel)")
@@ -419,6 +458,14 @@ def main():
     parser.add_argument("--split-ratio", type=float, default=0.3, help="Fracción de la ventana que ocupa el panel nuevo con --split-pane (default: 0.3)")
 
     args = parser.parse_args()
+
+    if args.uninstall:
+        uninstall()
+        return
+
+    if not args.video:
+        parser.error("falta la ruta del video/GIF (o usa --uninstall)")
+
     bg_color = tuple(int(c.strip()) for c in args.bg_color.split(","))
     if args.width is None:
         args.width = 300 if args.sixel else 80

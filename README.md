@@ -60,6 +60,7 @@ python fixed/photo.py mi_imagen.jpg
 | `--invert`    | Invierte tonos claros/oscuros (ignorado con `--truecolor`/`--sixel`) |
 | `--save`      | Guarda el resultado como archivo `.txt`                    |
 | `--install`   | Deja el resultado fijo en tu terminal (aparece cada vez que la abres) |
+| `--uninstall` | Quita la foto instalada de tu perfil de PowerShell (no necesita ruta de imagen: `python fixed/photo.py --uninstall`) |
 
 Si tu imagen es un **PNG con transparencia** (por ejemplo un recorte hecho con `remove.bg`), `--truecolor` respeta esa transparencia de verdad: no pinta ningún rectángulo de fondo, solo la silueta — como una estampa pegada en la terminal, no una foto con marco. `--feather` no aplica en ese caso (se ignora automáticamente) porque el recorte ya trae su propio borde limpio.
 
@@ -123,6 +124,7 @@ python video/animation.py mi_video.mp4
 | `--install`     | Deja el video instalado para que se reproduzca al abrir la terminal |
 | `--split-pane`  | Con `--install` y bucle infinito (sin `--once`): abre la animación en un panel nuevo de Windows Terminal en vez de ocupar la terminal principal — puedes seguir escribiendo comandos mientras se reproduce |
 | `--split-ratio` | Fracción de la ventana que ocupa el panel nuevo con `--split-pane` (default: `0.3`) |
+| `--uninstall`   | Quita el video instalado de tu perfil de PowerShell (no necesita ruta de video: `python video/animation.py --uninstall`). Si estaba en un panel dividido ya abierto, ese panel no se cierra solo. |
 
 ### Ejemplo: a color real, con bordes degradados
 

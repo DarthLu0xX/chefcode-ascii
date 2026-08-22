@@ -315,6 +315,50 @@ def _ps_escape_string(text):
     return "".join(out)
 
 
+MARKER_START = "# >>> chefcode-ascii-fixed >>>"
+MARKER_END = "# <<< chefcode-ascii-fixed <<<"
+
+
+def _get_profile_path():
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "echo $PROFILE"],
+            capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        print(f"❌ No se pudo obtener la ruta de $PROFILE: {e}")
+        return None
+
+
+def uninstall():
+    """Quita la foto instalada del perfil de PowerShell, si hay una."""
+    if platform.system() != "Windows":
+        print("⚠️  Nada que desinstalar: la instalación automática solo aplica en Windows (PowerShell).")
+        return
+
+    profile_path = _get_profile_path()
+    if not profile_path or not os.path.exists(profile_path):
+        print("ℹ️  No había nada instalado.")
+        return
+
+    with open(profile_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    if MARKER_START not in content or MARKER_END not in content:
+        print("ℹ️  No había ninguna foto instalada en tu perfil.")
+        return
+
+    before = content.split(MARKER_START)[0]
+    after = content.split(MARKER_END)[1]
+    with open(profile_path, "w", encoding="utf-8") as f:
+        f.write(before + after)
+
+    print(f"✅ Desinstalado de tu perfil de PowerShell: {profile_path}")
+    print("🔄 Cierra y vuelve a abrir la terminal para verlo.")
+
+
 def install_permanent(lines, color, truecolor=False):
     """Agrega el resultado al perfil de PowerShell para que
     aparezca cada vez que se abra la terminal (solo Windows)."""
@@ -324,23 +368,15 @@ def install_permanent(lines, color, truecolor=False):
         print("    Puedes copiar manualmente el archivo .txt generado a tu shell de preferencia.")
         return
 
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "echo $PROFILE"],
-            capture_output=True, text=True, check=True
-        )
-        profile_path = result.stdout.strip()
-    except Exception as e:
-        print(f"❌ No se pudo obtener la ruta de $PROFILE: {e}")
+    profile_path = _get_profile_path()
+    if not profile_path:
         return
 
     profile_dir = os.path.dirname(profile_path)
     os.makedirs(profile_dir, exist_ok=True)
 
-    marker_start = "# >>> chefcode-ascii-fixed >>>"
-    marker_end = "# <<< chefcode-ascii-fixed <<<"
+    marker_start = MARKER_START
+    marker_end = MARKER_END
 
     block_lines = [marker_start]
     if truecolor:
@@ -380,7 +416,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Terminal Perrona - Convierte una imagen en algo que se ve real en tu terminal"
     )
-    parser.add_argument("image", help="Ruta a la imagen (jpg, png, etc.)")
+    parser.add_argument("image", nargs="?", default=None, help="Ruta a la imagen (jpg, png, etc.). No hace falta con --uninstall.")
+    parser.add_argument("--uninstall", action="store_true", help="Quita la foto instalada de tu perfil de PowerShell y termina (no necesita ruta de imagen).")
     parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 100 en modo texto, 300 con --sixel.")
     parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor)")
     parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido, requiere una terminal con soporte truecolor (Windows Terminal, la mayoría de terminales modernas).")
@@ -392,6 +429,13 @@ def main():
     parser.add_argument("--save", metavar="ARCHIVO.txt", help="Guarda el resultado como archivo de texto")
 
     args = parser.parse_args()
+
+    if args.uninstall:
+        uninstall()
+        return
+
+    if not args.image:
+        parser.error("falta la ruta de la imagen (o usa --uninstall)")
 
     print("👨‍🍳 Cocinando tu imagen...\n")
 
