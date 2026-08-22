@@ -99,11 +99,11 @@ def run_video():
     max_frames = int(max_frames_raw) if max_frames_raw else None
 
     if use_sixel:
-        frames, source_fps = ascii_video.extract_frames_sixel(path, width, max_frames=max_frames)
+        frames, source_fps, img_size = ascii_video.extract_frames_sixel(path, width, max_frames=max_frames)
         fps = ask_int("FPS de reproducción", round(source_fps) or 15)
         print("\n▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
         print("Si ves texto/códigos raros en vez de la animación, tu terminal no soporta Sixel.\n")
-        ascii_video.play_ascii(frames, fps=fps, loop=False, sixel=True)
+        ascii_video.play_ascii(frames, fps=fps, loop=False, sixel=True, img_size=img_size)
     else:
         feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
         fps = ask_int("FPS de reproducción", 15)

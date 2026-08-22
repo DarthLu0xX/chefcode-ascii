@@ -17,6 +17,7 @@ import os
 import sys
 import time
 import platform
+import shutil
 
 import cv2
 import numpy as np
@@ -164,7 +165,7 @@ def _pil_frame_to_sixel(img, width=None, max_colors=256, alpha_threshold=128):
     if out[-1] == "-":
         out.pop()
     out.append("\x1b\\")
-    return "".join(out)
+    return "".join(out), w, h
 
 
 def extract_frames_sixel(path, width, max_frames=None):
@@ -180,13 +181,16 @@ def extract_frames_sixel(path, width, max_frames=None):
 
     frames = []
     fps = 15
+    img_size = None
 
     if os.path.splitext(path)[1].lower() == ".gif":
         gif = Image.open(path)
         durations = []
         count = 0
         for frame in ImageSequence.Iterator(gif):
-            frames.append(_pil_frame_to_sixel(frame.convert("RGBA"), width=width))
+            data, w, h = _pil_frame_to_sixel(frame.convert("RGBA"), width=width)
+            frames.append(data)
+            img_size = img_size or (w, h)
             durations.append(frame.info.get("duration", 100) or 100)
             count += 1
             if max_frames and count >= max_frames:
@@ -205,7 +209,9 @@ def extract_frames_sixel(path, width, max_frames=None):
             if not ret:
                 break
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frames.append(_pil_frame_to_sixel(Image.fromarray(rgb), width=width))
+            data, w, h = _pil_frame_to_sixel(Image.fromarray(rgb), width=width)
+            frames.append(data)
+            img_size = img_size or (w, h)
             count += 1
             if max_frames and count >= max_frames:
                 break
@@ -216,7 +222,7 @@ def extract_frames_sixel(path, width, max_frames=None):
         sys.exit(1)
 
     print(f"✅ {len(frames)} fotogramas listos.\n", flush=True)
-    return frames, fps
+    return frames, fps, img_size
 
 
 def extract_frames(video_path, width, invert=False, max_frames=None,
@@ -258,11 +264,28 @@ def extract_frames(video_path, width, invert=False, max_frames=None,
     return frames, source_fps
 
 
-def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False):
+def _center_prefix(img_size, cell_size=(9, 18)):
+    """Calcula espacios/saltos de línea para centrar una imagen de
+    img_size píxeles dentro del panel actual. cell_size es una
+    estimación del tamaño en píxeles de un carácter de tu fuente (no
+    hay forma portable de saber el valor exacto) -- el centrado es
+    aproximado, no perfecto."""
+    if not img_size:
+        return ""
+    img_w, img_h = img_size
+    cell_w, cell_h = cell_size
+    cols, rows = shutil.get_terminal_size(fallback=(80, 24))
+    pad_cols = max(0, int((cols - img_w / cell_w) / 2))
+    pad_rows = max(0, int((rows - img_h / cell_h) / 2))
+    return ("\n" * pad_rows) + (" " * pad_cols)
+
+
+def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False, img_size=None):
     plain = truecolor or sixel
     color_code = COLOR_CODES.get(color, "") if (color and not plain) else ""
     reset = COLOR_CODES["reset"] if (color and not plain) else ""
     delay = 1.0 / max(fps, 1)
+    prefix = _center_prefix(img_size) if sixel else ""
 
     try:
         # Cada fotograma se borra y redibuja de nuevo (si no, los pixeles
@@ -273,7 +296,7 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False)
         print(HIDE_CURSOR, end="")
         while True:
             for frame in frames:
-                print(SYNC_BEGIN + CLEAR_SCREEN + color_code + frame + reset + SYNC_END, end="", flush=True)
+                print(SYNC_BEGIN + CLEAR_SCREEN + prefix + color_code + frame + reset + SYNC_END, end="", flush=True)
                 time.sleep(delay)
             if not loop:
                 break
@@ -399,8 +422,9 @@ def main():
     if args.width is None:
         args.width = 300 if args.sixel else 80
 
+    img_size = None
     if args.sixel:
-        frames, source_fps = extract_frames_sixel(args.video, args.width, max_frames=args.max_frames)
+        frames, source_fps, img_size = extract_frames_sixel(args.video, args.width, max_frames=args.max_frames)
     else:
         frames, source_fps = extract_frames(
             args.video, args.width, args.invert, max_frames=args.max_frames,
@@ -416,7 +440,7 @@ def main():
     if not skip_preview:
         print("▶️  Reproduciendo... (Ctrl + C para detener)\n", flush=True)
         time.sleep(1)
-        play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
+        play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel, img_size=img_size)
 
     if args.install:
         install_permanent(
