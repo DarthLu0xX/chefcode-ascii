@@ -9,8 +9,8 @@ Todo corre **localmente en tu computadora**. No se sube nada a ningún servidor 
 ## 🔧 Instalación
 
 ```bash
-git clone https://github.com/DarthLu0xX/chefcode-ascii.git
-cd chefcode-ascii
+git clone https://github.com/DarthLu0xX/chefcode-terminal.git
+cd chefcode-terminal
 pip install -r requirements.txt
 ```
 
