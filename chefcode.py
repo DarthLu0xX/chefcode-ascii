@@ -16,8 +16,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixed"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "video"))
 
-import ascii_fixed
-import ascii_video
+import photo
+import animation
 
 
 def ask(prompt, default=None):
@@ -59,14 +59,14 @@ def run_photo():
 
     if mode.strip() == "2":
         width = ask_int("Ancho en píxeles reales", 300)
-        data = ascii_fixed.image_to_sixel(path, width=width)
+        data = photo.image_to_sixel(path, width=width)
         print()
-        ascii_fixed.print_sixel(data)
+        photo.print_sixel(data)
         print()
         print("¿Se ve la foto de verdad, sin escalones? Si en vez de eso ves texto raro/basura,")
         print("tu terminal no soporta Sixel — responde 'n' abajo y usa la opción 1.")
         if ask_yes_no("¿Se ve bien? ¿Lo dejo fijo en tu terminal?", True):
-            ascii_fixed.install_permanent([data], "white", truecolor=True)
+            photo.install_permanent([data], "white", truecolor=True)
         else:
             print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
         return
@@ -74,13 +74,13 @@ def run_photo():
     width = ask_int("Ancho del arte en caracteres", 60)
     feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
 
-    lines = ascii_fixed.image_to_ansi_truecolor(path, width=width, feather=feather, bg_color=(0, 0, 0))
+    lines = photo.image_to_ansi_truecolor(path, width=width, feather=feather, bg_color=(0, 0, 0))
     print()
-    ascii_fixed.print_truecolor(lines)
+    photo.print_truecolor(lines)
     print()
 
     if ask_yes_no("¿Se ve bien? ¿Lo dejo fijo en tu terminal?", True):
-        ascii_fixed.install_permanent(lines, "white", truecolor=True)
+        photo.install_permanent(lines, "white", truecolor=True)
     else:
         print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
 
@@ -99,20 +99,20 @@ def run_video():
     max_frames = int(max_frames_raw) if max_frames_raw else None
 
     if use_sixel:
-        frames, source_fps, img_size = ascii_video.extract_frames_sixel(path, width, max_frames=max_frames)
+        frames, source_fps, img_size = animation.extract_frames_sixel(path, width, max_frames=max_frames)
         fps = ask_int("FPS de reproducción", round(source_fps) or 15)
         print("\n▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
         print("Si ves texto/códigos raros en vez de la animación, tu terminal no soporta Sixel.\n")
-        ascii_video.play_ascii(frames, fps=fps, loop=False, sixel=True, img_size=img_size)
+        animation.play_ascii(frames, fps=fps, loop=False, sixel=True, img_size=img_size)
     else:
         feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
         fps = ask_int("FPS de reproducción", 15)
-        frames, _ = ascii_video.extract_frames(
+        frames, _ = animation.extract_frames(
             path, width, invert=False, max_frames=max_frames,
             truecolor=True, feather=feather, bg_color=(0, 0, 0),
         )
         print("\n▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
-        ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
+        animation.play_ascii(frames, fps=fps, loop=False, truecolor=True)
 
     if ask_yes_no("¿Se ve bien? ¿Lo dejo para que se reproduzca al abrir la terminal?", True):
         loop_forever = ask_yes_no("¿En bucle infinito (como si estuviera 'vivo')?", True)
@@ -125,15 +125,15 @@ def run_video():
                 True,
             )
         if use_sixel:
-            ascii_video.install_permanent(path, width, fps, sixel=True, once=once, split_pane=split_pane)
+            animation.install_permanent(path, width, fps, sixel=True, once=once, split_pane=split_pane)
         else:
-            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather, once=once, split_pane=split_pane)
+            animation.install_permanent(path, width, fps, truecolor=True, feather=feather, once=once, split_pane=split_pane)
     else:
         print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
 
 
 def main():
-    print("🍳 Chef Code - ASCII\n")
+    print("😎 Terminal Perrona\n")
     print("¿Qué quieres cargar?")
     print("  1) Foto (fija)")
     print("  2) Video / GIF (animado)")

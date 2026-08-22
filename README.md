@@ -1,21 +1,20 @@
-# 👨‍🍳 Chef Code ASCII
+# 😎 Terminal Perrona
 
-Convierte tus propias imágenes y videos en arte ASCII a color real directamente en tu terminal.
+Convierte tus propias fotos y videos en algo que se ve real directamente en tu terminal — a color real (24-bit) o como imagen de verdad (Sixel), sin depender de simular todo con caracteres.
 
 Todo corre **localmente en tu computadora**. No se sube nada a ningún servidor — tu imagen o video nunca sale de tu PC.
 
 ---
 
-## 📦 Requisitos
-
-- Python 3.8 o superior
-- pip
-
-Instala las dependencias:
+## 🔧 Instalación
 
 ```bash
+git clone https://github.com/DarthLu0xX/chefcode-ascii.git
+cd chefcode-ascii
 pip install -r requirements.txt
 ```
+
+Requisitos: Python 3.8 o superior, y pip.
 
 ---
 
@@ -30,37 +29,37 @@ python chefcode.py
 Te pregunta:
 
 1. **¿Foto o video?**
-2. La ruta de tu archivo (y un par de opciones simples: ancho, si degradar los bordes, etc.)
-3. Te muestra la **vista previa** ahí mismo en tu terminal, a color real.
+2. La ruta de tu archivo, cómo renderizarlo (bloques de color o Sixel) y un par de opciones simples.
+3. Te muestra la **vista previa** ahí mismo en tu terminal.
 4. Solo si te gusta cómo quedó, te pregunta si quieres **guardarlo** para que aparezca cada vez que abras la terminal.
 
-Por debajo usa las mismas dos herramientas de siempre — `fixed/` para imágenes y `video/` para animaciones — así que si prefieres controlar cada flag a mano, puedes seguir usándolas directamente (ver abajo).
+Por debajo usa las mismas dos herramientas de siempre — `fixed/` para fotos y `video/` para animaciones — así que si prefieres controlar cada flag a mano, puedes seguir usándolas directamente (ver abajo).
 
 ---
 
-## 🖼️ 1. Imagen fija (`fixed/ascii_fixed.py`)
+## 🖼️ 1. Foto fija (`fixed/photo.py`)
 
-Convierte una imagen en ASCII. Puedes verla en pantalla, guardarla como archivo de texto, o dejarla **instalada permanentemente** en tu terminal (Windows PowerShell).
+Convierte una imagen y la deja lista para tu terminal. Puedes verla en pantalla, guardarla como archivo, o dejarla **instalada permanentemente** (Windows PowerShell).
 
 ### Uso básico
 
 ```bash
-python fixed/ascii_fixed.py mi_imagen.jpg
+python fixed/photo.py mi_imagen.jpg
 ```
 
 ### Opciones
 
 | Opción        | Descripción                                              |
 |---------------|------------------------------------------------------------|
-| `--width`     | Ancho del arte en caracteres (default: 100)               |
+| `--width`     | Ancho en caracteres (modo texto) o en píxeles reales (`--sixel`). Default: 100 en modo texto, 300 con `--sixel` |
 | `--color`     | Color del texto: red, green, yellow, blue, magenta, cyan, white (ignorado con `--truecolor`) |
-| `--truecolor` | Renderiza con bloques `▀` a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido — recomendado si tu terminal soporta color de 24 bits (Windows Terminal, la mayoría de terminales modernas) |
+| `--truecolor` | Renderiza con bloques `▀` a color real (24-bit) en vez de texto por brillo. Se ve mucho más nítido — recomendado si tu terminal soporta color de 24 bits (Windows Terminal, la mayoría de terminales modernas) |
 | `--sixel`     | Dibuja la imagen real, pixel por pixel (protocolo Sixel), en vez de simularla con texto — sin escalones, calidad de foto. Ignora `--truecolor`/`--color`/`--invert`/`--feather`. Experimental: requiere Windows Terminal 1.22+ |
 | `--feather`   | Solo para fotos **sin** transparencia. Degrada los bordes hacia el color de fondo en vez de cortar en un rectángulo duro |
 | `--bg-color`  | Color de fondo de tu terminal como `"R,G,B"` (default: `0,0,0` = negro), usado por `--feather` |
 | `--invert`    | Invierte tonos claros/oscuros (ignorado con `--truecolor`/`--sixel`) |
 | `--save`      | Guarda el resultado como archivo `.txt`                    |
-| `--install`   | Deja el arte fijo en tu terminal (aparece cada vez que la abres) |
+| `--install`   | Deja el resultado fijo en tu terminal (aparece cada vez que la abres) |
 
 Si tu imagen es un **PNG con transparencia** (por ejemplo un recorte hecho con `remove.bg`), `--truecolor` respeta esa transparencia de verdad: no pinta ningún rectángulo de fondo, solo la silueta — como una estampa pegada en la terminal, no una foto con marco. `--feather` no aplica en ese caso (se ignora automáticamente) porque el recorte ya trae su propio borde limpio.
 
@@ -72,48 +71,48 @@ Si tu imagen es un **PNG con transparencia** (por ejemplo un recorte hecho con `
 
 ```bash
 # 1. Prueba primero (sin --install)
-python fixed/ascii_fixed.py mi_foto.png --sixel
+python fixed/photo.py mi_foto.png --sixel
 
 # 2. Si se ve bien, instálalo
-python fixed/ascii_fixed.py mi_foto.png --sixel --install
+python fixed/photo.py mi_foto.png --sixel --install
 ```
 
 ### Ejemplo: dejarlo fijo en tu terminal (modo clásico)
 
 ```bash
-python fixed/ascii_fixed.py mi_logo.png --width 80 --color red --install
+python fixed/photo.py mi_logo.png --width 80 --color red --install
 ```
 
 ### Ejemplo: a color real (recomendado)
 
 ```bash
-python fixed/ascii_fixed.py mi_logo.png --width 90 --truecolor --install
+python fixed/photo.py mi_logo.png --width 90 --truecolor --install
 ```
 
-Esto agrega el arte a tu perfil de PowerShell (`$PROFILE`). Cierra y vuelve a abrir la terminal para verlo.
+Esto agrega el resultado a tu perfil de PowerShell (`$PROFILE`). Cierra y vuelve a abrir la terminal para verlo.
 
 > ⚠️ La instalación automática con `--install` solo está soportada en **Windows (PowerShell)** por ahora. En Mac/Linux, usa `--save` y agrega el archivo manualmente a tu `.bashrc` / `.zshrc`.
 > 💡 `--truecolor` se ve mucho mejor en **Windows Terminal** que en la consola clásica de "Windows PowerShell" (conhost), que no siempre renderiza bien el color de 24 bits.
 
 ---
 
-## 🎬 2. Video animado (`video/ascii_video.py`)
+## 🎬 2. Video animado (`video/animation.py`)
 
-Convierte un video (mp4, mov) o GIF en una animación ASCII que se reproduce en tu terminal. Igual que las fotos, soporta `--truecolor` (bloques a color real) y `--feather` (bordes degradados).
+Convierte un video (mp4, mov) o GIF en una animación que se reproduce en tu terminal. Igual que las fotos, soporta `--truecolor` (bloques a color real) y `--sixel` (imagen real, sin escalones).
 
 ### Uso básico
 
 ```bash
-python video/ascii_video.py mi_video.mp4
+python video/animation.py mi_video.mp4
 ```
 
 ### Opciones
 
 | Opción         | Descripción                                              |
 |-----------------|------------------------------------------------------------|
-| `--width`       | Ancho del arte en caracteres (default: 80)                 |
-| `--fps`         | Velocidad de reproducción en fotogramas por segundo (default: 15) |
-| `--color`       | Color del texto (ignorado con `--truecolor`)               |
+| `--width`       | Ancho en caracteres (modo texto) o en píxeles reales (`--sixel`). Default: 80 en modo texto, 300 con `--sixel` |
+| `--fps`         | Fotogramas por segundo de reproducción (default: 15, o la velocidad real del GIF con `--sixel` si no se especifica) |
+| `--color`       | Color del texto (ignorado con `--truecolor`/`--sixel`)     |
 | `--truecolor`   | Renderiza con bloques `▀` a color real (24-bit), igual que en las fotos |
 | `--sixel`       | Dibuja cada fotograma como imagen real (protocolo Sixel), sin escalones. Con GIF, respeta la transparencia real de cada fotograma (Pillow, no cv2). Experimental (Windows Terminal 1.22+). Ignora `--truecolor`/`--color`/`--invert`/`--feather` |
 | `--feather`     | Solo con `--truecolor`. Degrada los bordes de cada fotograma hacia el fondo |
@@ -128,24 +127,24 @@ python video/ascii_video.py mi_video.mp4
 ### Ejemplo: a color real, con bordes degradados
 
 ```bash
-python video/ascii_video.py mi_video.mp4 --width 70 --truecolor --feather --once
+python video/animation.py mi_video.mp4 --width 70 --truecolor --feather --once
 ```
 
 ### Ejemplo: Sixel, con transparencia real de GIF, "vivo" en un panel aparte
 
 ```bash
 # 1. Prueba primero (sin --install, con --once para que termine solo)
-python video/ascii_video.py mi_baile.gif --sixel --once
+python video/animation.py mi_baile.gif --sixel --once
 
 # 2. Si se ve bien, instálalo en bucle infinito en un panel nuevo,
 #    para verlo mientras sigues trabajando en tu panel principal
-python video/ascii_video.py mi_baile.gif --sixel --width 300 --install --split-pane
+python video/animation.py mi_baile.gif --sixel --width 300 --install --split-pane
 ```
 
 Presiona **Ctrl + C** en cualquier momento para detener la animación.
 
 > 💡 Tip: videos cortos (5-15 segundos) funcionan mejor. Videos muy largos tardan más en procesarse antes de reproducirse.
-> ⚠️ A diferencia de una imagen fija, `--install` en el video vuelve a correr Python cada vez que abres la terminal (con `--once`, para no bloquear la sesión en un loop infinito). Necesitas Python y las dependencias de este proyecto instaladas en la máquina donde uses la terminal.
+> ⚠️ A diferencia de una foto fija, `--install` en el video vuelve a correr Python cada vez que abres la terminal (con `--once`, para no bloquear la sesión en un loop infinito). Necesitas Python y las dependencias de este proyecto instaladas en la máquina donde uses la terminal.
 > ⚠️ `--sixel` en video es más lento de procesar que `--truecolor` (cada fotograma se cuantiza a color real). Con `--install`, eso significa que **cada terminal nueva tarda esos mismos segundos en aparecer** antes de reproducir la animación — para un GIF de ~50 fotogramas cuenta con varios segundos de espera. Si te importa más la velocidad de arranque que la calidad, usa `--truecolor` en su lugar, o `--max-frames` para recortar el clip.
 > ⚠️ `--split-pane` necesita el comando `wt` disponible (viene con Windows Terminal instalado desde Microsoft Store o winget) y que abras tu terminal **como Windows Terminal**, no la consola clásica — si no, `wt` puede no encontrar una ventana donde dividir el panel.
 

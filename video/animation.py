@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Chef Code - ASCII Video
-------------------------
-Convierte un video o GIF en una animación ASCII que se reproduce
-en bucle directo en tu terminal. Presiona Ctrl + C para detenerla.
+Terminal Perrona - Video
+--------------------------
+Convierte un video o GIF en una animación que se reproduce en bucle
+directo en tu terminal, a color real o como imagen de verdad (Sixel).
+Presiona Ctrl + C para detenerla.
 
 Uso:
-    python ascii_video.py mi_video.mp4
-    python ascii_video.py mi_video.gif --width 80 --fps 12
-    python ascii_video.py mi_video.mp4 --truecolor --feather --once
-    python ascii_video.py mi_video.mp4 --truecolor --install
+    python animation.py mi_video.mp4
+    python animation.py mi_video.gif --width 80 --fps 12
+    python animation.py mi_video.mp4 --truecolor --feather --once
+    python animation.py mi_video.mp4 --truecolor --install
 """
 
 import argparse
@@ -109,7 +110,7 @@ def frame_to_ansi_truecolor(frame, width, feather=False, bg_color=(0, 0, 0)):
 
 
 def _pil_frame_to_sixel(img, width=None, max_colors=256, alpha_threshold=128):
-    """Igual que image_to_sixel de fixed/ascii_fixed.py pero recibe un
+    """Igual que image_to_sixel de fixed/photo.py pero recibe un
     Image de Pillow ya cargado (un fotograma), en vez de una ruta."""
     has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
     img = img.convert("RGBA") if has_alpha else img.convert("RGB")
@@ -400,13 +401,13 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Chef Code - Reproduce un video como animación ASCII en tu terminal"
+        description="Terminal Perrona - Reproduce un video como animación real en tu terminal"
     )
     parser.add_argument("video", help="Ruta al video o GIF (mp4, gif, mov, etc.)")
     parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 80 en modo texto, 300 con --sixel.")
     parser.add_argument("--fps", type=int, default=None, help="Fotogramas por segundo de reproducción (default: 15, o la velocidad real del GIF con --sixel si no se especifica)")
     parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor/--sixel)")
-    parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo, igual que en fixed/ascii_fixed.py.")
+    parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo, igual que en fixed/photo.py.")
     parser.add_argument("--sixel", action="store_true", help="Dibuja cada fotograma como imagen real (protocolo Sixel), sin escalones. Respeta la transparencia real de los GIF. Experimental (Windows Terminal 1.22+). Ignora --truecolor/--color/--invert/--feather.")
     parser.add_argument("--feather", action="store_true", help="Degrada los bordes de cada fotograma hacia el color de fondo (solo con --truecolor).")
     parser.add_argument("--bg-color", default="0,0,0", help="Color de fondo de tu terminal como 'R,G,B' (default: 0,0,0), usado por --feather.")

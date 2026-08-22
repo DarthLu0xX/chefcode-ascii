@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Chef Code - ASCII Fijo
-------------------------
-Convierte una imagen en arte ASCII y opcionalmente la deja
-fija en tu terminal (aparece cada vez que la abres).
+Terminal Perrona - Foto Fija
+------------------------------
+Convierte una imagen en algo que se ve real en tu terminal (a color
+real o Sixel) y opcionalmente la deja fija ahí (aparece cada vez que
+la abres).
 
 Uso:
-    python ascii_fixed.py mi_imagen.jpg
-    python ascii_fixed.py mi_imagen.jpg --width 100 --color green
-    python ascii_fixed.py mi_imagen.jpg --install
+    python photo.py mi_imagen.jpg
+    python photo.py mi_imagen.jpg --width 100 --color green
+    python photo.py mi_imagen.jpg --install
 """
 
 import argparse
@@ -286,7 +287,7 @@ def print_sixel(data):
 def save_ascii_txt(lines, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
-    print(f"✅ Arte ASCII guardado en: {output_path}")
+    print(f"✅ Resultado guardado en: {output_path}")
 
 
 def _ps_escape_string(text):
@@ -315,7 +316,7 @@ def _ps_escape_string(text):
 
 
 def install_permanent(lines, color, truecolor=False):
-    """Agrega el arte ASCII al perfil de PowerShell para que
+    """Agrega el resultado al perfil de PowerShell para que
     aparezca cada vez que se abra la terminal (solo Windows)."""
 
     if platform.system() != "Windows":
@@ -377,7 +378,7 @@ def install_permanent(lines, color, truecolor=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Chef Code - Convierte una imagen en arte ASCII para tu terminal"
+        description="Terminal Perrona - Convierte una imagen en algo que se ve real en tu terminal"
     )
     parser.add_argument("image", help="Ruta a la imagen (jpg, png, etc.)")
     parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 100 en modo texto, 300 con --sixel.")
@@ -392,7 +393,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("👨‍🍳 Cocinando tu arte ASCII...\n")
+    print("👨‍🍳 Cocinando tu imagen...\n")
 
     bg_color = tuple(int(c.strip()) for c in args.bg_color.split(","))
     if args.width is None:
