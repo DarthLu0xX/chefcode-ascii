@@ -36,9 +36,16 @@ COLOR_CODES = {
 }
 
 CLEAR_SCREEN = "\033[H\033[J"
-CURSOR_HOME = "\033[H"
 HIDE_CURSOR = "\033[?25l"
 SHOW_CURSOR = "\033[?25h"
+# "Salida sincronizada" (modo DEC 2026): le pide a la terminal que
+# junte todo lo que se imprima entre estos dos códigos y lo muestre de
+# golpe, en vez de ir pintando a medida que llega. Evita el parpadeo
+# de borrar+redibujar sin dejar fotogramas fantasma pegados. Windows
+# Terminal reciente lo soporta; si no lo soporta, simplemente lo
+# ignora sin romper nada.
+SYNC_BEGIN = "\033[?2026h"
+SYNC_END = "\033[?2026l"
 
 
 def frame_to_ascii(frame, width, invert=False):
@@ -258,15 +265,15 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False)
     delay = 1.0 / max(fps, 1)
 
     try:
-        # Un solo borrado real al inicio (quita el texto de "Cocinando..."/
-        # "Reproduciendo..."). Cada fotograma después solo reposiciona el
-        # cursor y sobrescribe encima del anterior -- borrar en cada
-        # fotograma es lo que causaba el parpadeo (un instante en blanco
-        # entre un fotograma y el siguiente).
-        print(HIDE_CURSOR + CLEAR_SCREEN, end="")
+        # Cada fotograma se borra y redibuja de nuevo (si no, los pixeles
+        # transparentes que el personaje dejó de ocupar se quedan pegados
+        # -- rastro fantasma). Envuelto en "salida sincronizada" para que
+        # la terminal muestre el borrado+redibujado como un solo golpe,
+        # sin el parpadeo de antes.
+        print(HIDE_CURSOR, end="")
         while True:
             for frame in frames:
-                print(CURSOR_HOME + color_code + frame + reset, end="", flush=True)
+                print(SYNC_BEGIN + CLEAR_SCREEN + color_code + frame + reset + SYNC_END, end="", flush=True)
                 time.sleep(delay)
             if not loop:
                 break
