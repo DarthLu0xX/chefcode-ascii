@@ -36,6 +36,7 @@ COLOR_CODES = {
 }
 
 CLEAR_SCREEN = "\033[H\033[J"
+CURSOR_HOME = "\033[H"
 HIDE_CURSOR = "\033[?25l"
 SHOW_CURSOR = "\033[?25h"
 
@@ -257,10 +258,15 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False)
     delay = 1.0 / max(fps, 1)
 
     try:
-        print(HIDE_CURSOR, end="")
+        # Un solo borrado real al inicio (quita el texto de "Cocinando..."/
+        # "Reproduciendo..."). Cada fotograma después solo reposiciona el
+        # cursor y sobrescribe encima del anterior -- borrar en cada
+        # fotograma es lo que causaba el parpadeo (un instante en blanco
+        # entre un fotograma y el siguiente).
+        print(HIDE_CURSOR + CLEAR_SCREEN, end="")
         while True:
             for frame in frames:
-                print(CLEAR_SCREEN + color_code + frame + reset, end="", flush=True)
+                print(CURSOR_HOME + color_code + frame + reset, end="", flush=True)
                 time.sleep(delay)
             if not loop:
                 break
