@@ -271,7 +271,7 @@ def play_ascii(frames, fps, color=None, loop=True, truecolor=False, sixel=False)
         print("\n🍳 Chef Code - ¡Hasta la próxima receta!")
 
 
-def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None, sixel=False):
+def install_permanent(video_path, width, fps, truecolor=False, feather=False, color=None, sixel=False, once=True):
     """Agrega al perfil de PowerShell el comando para reproducir esta
     animación cada vez que se abra la terminal (solo Windows). A
     diferencia de una imagen fija, esto vuelve a correr Python en cada
@@ -309,8 +309,9 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
         f'"{video_abspath}"',
         f"--width {width}",
         f"--fps {fps}",
-        "--once",
     ]
+    if once:
+        cmd_parts.append("--once")
     if sixel:
         cmd_parts.append("--sixel")
     elif truecolor:
@@ -338,7 +339,11 @@ def install_permanent(video_path, width, fps, truecolor=False, feather=False, co
         f.write(new_content)
 
     print(f"✅ Instalado en tu perfil de PowerShell: {profile_path}")
-    print("🔄 Cierra y vuelve a abrir la terminal para verlo (se reproduce una vez, con --once).")
+    if once:
+        print("🔄 Cierra y vuelve a abrir la terminal para verlo (se reproduce una vez, con --once).")
+    else:
+        print("🔄 Cierra y vuelve a abrir la terminal para verlo — se reproduce EN BUCLE INFINITO.")
+        print("   La terminal no queda usable hasta que presiones Ctrl+C para detener la animación.")
     print("⚠️  Esto ejecuta Python cada vez que abres la terminal — necesitas Python y las")
     print("    dependencias de este proyecto (requirements.txt) instaladas en esta máquina.")
 
@@ -381,7 +386,7 @@ def main():
     play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
 
     if args.install:
-        install_permanent(args.video, args.width, fps, truecolor=args.truecolor, feather=args.feather, color=args.color, sixel=args.sixel)
+        install_permanent(args.video, args.width, fps, truecolor=args.truecolor, feather=args.feather, color=args.color, sixel=args.sixel, once=args.once)
 
 
 if __name__ == "__main__":

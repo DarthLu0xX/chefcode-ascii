@@ -115,10 +115,11 @@ def run_video():
         ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
 
     if ask_yes_no("¿Se ve bien? ¿Lo dejo para que se reproduzca al abrir la terminal?", True):
+        once = not ask_yes_no("¿En bucle infinito (como si estuviera 'vivo')? Si dices que sí, la terminal no queda usable hasta que presiones Ctrl+C", False)
         if use_sixel:
-            ascii_video.install_permanent(path, width, fps, sixel=True)
+            ascii_video.install_permanent(path, width, fps, sixel=True, once=once)
         else:
-            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather)
+            ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather, once=once)
     else:
         print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
 
