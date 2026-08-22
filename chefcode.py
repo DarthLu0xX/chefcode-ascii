@@ -51,6 +51,26 @@ def ask_int(prompt, default):
 
 def run_photo():
     path = ask_path("📷 Ruta de tu imagen (jpg, png...)")
+
+    print("\n¿Cómo la quieres renderizar?")
+    print("  1) Bloques de color (texto) — funciona en casi cualquier terminal")
+    print("  2) Sixel (imagen real, pixel por pixel) — sin escalones, pero experimental (Windows Terminal 1.22+)")
+    mode = ask("Elige una opción", "1")
+
+    if mode.strip() == "2":
+        width = ask_int("Ancho en píxeles reales", 300)
+        data = ascii_fixed.image_to_sixel(path, width=width)
+        print()
+        ascii_fixed.print_sixel(data)
+        print()
+        print("¿Se ve la foto de verdad, sin escalones? Si en vez de eso ves texto raro/basura,")
+        print("tu terminal no soporta Sixel — responde 'n' abajo y usa la opción 1.")
+        if ask_yes_no("¿Se ve bien? ¿Lo dejo fijo en tu terminal?", True):
+            ascii_fixed.install_permanent([data], "white", truecolor=True)
+        else:
+            print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
+        return
+
     width = ask_int("Ancho del arte en caracteres", 60)
     feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
 

@@ -55,13 +55,28 @@ python fixed/ascii_fixed.py mi_imagen.jpg
 | `--width`     | Ancho del arte en caracteres (default: 100)               |
 | `--color`     | Color del texto: red, green, yellow, blue, magenta, cyan, white (ignorado con `--truecolor`) |
 | `--truecolor` | Renderiza con bloques `▀` a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido — recomendado si tu terminal soporta color de 24 bits (Windows Terminal, la mayoría de terminales modernas) |
+| `--sixel`     | Dibuja la imagen real, pixel por pixel (protocolo Sixel), en vez de simularla con texto — sin escalones, calidad de foto. Ignora `--truecolor`/`--color`/`--invert`/`--feather`. Experimental: requiere Windows Terminal 1.22+ |
 | `--feather`   | Solo para fotos **sin** transparencia. Degrada los bordes hacia el color de fondo en vez de cortar en un rectángulo duro |
 | `--bg-color`  | Color de fondo de tu terminal como `"R,G,B"` (default: `0,0,0` = negro), usado por `--feather` |
-| `--invert`    | Invierte tonos claros/oscuros (ignorado con `--truecolor`) |
+| `--invert`    | Invierte tonos claros/oscuros (ignorado con `--truecolor`/`--sixel`) |
 | `--save`      | Guarda el resultado como archivo `.txt`                    |
 | `--install`   | Deja el arte fijo en tu terminal (aparece cada vez que la abres) |
 
 Si tu imagen es un **PNG con transparencia** (por ejemplo un recorte hecho con `remove.bg`), `--truecolor` respeta esa transparencia de verdad: no pinta ningún rectángulo de fondo, solo la silueta — como una estampa pegada en la terminal, no una foto con marco. `--feather` no aplica en ese caso (se ignora automáticamente) porque el recorte ya trae su propio borde limpio.
+
+### ¿Bloques de color o Sixel?
+
+`--truecolor` (bloques `▀`) es el modo por defecto recomendado: funciona en casi cualquier terminal moderna, pero por más ancho que uses siempre vas a notar un ligero "escalonado" en curvas, porque cada carácter solo puede pintar un color sólido.
+
+`--sixel` dibuja la imagen pixel por pixel de verdad — cero escalones, calidad de foto real — pero es experimental: necesitas **Windows Terminal 1.22 o superior** (no funciona en la consola clásica de "Windows PowerShell"). **Pruébalo primero sin `--install`** para confirmar que tu terminal lo soporta; si en vez de la imagen ves texto/códigos raros, tu terminal no lo soporta todavía y debes usar `--truecolor`.
+
+```bash
+# 1. Prueba primero (sin --install)
+python fixed/ascii_fixed.py mi_foto.png --sixel
+
+# 2. Si se ve bien, instálalo
+python fixed/ascii_fixed.py mi_foto.png --sixel --install
+```
 
 ### Ejemplo: dejarlo fijo en tu terminal (modo clásico)
 

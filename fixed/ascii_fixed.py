@@ -198,6 +198,70 @@ def image_to_ansi_truecolor(image_path, width=100, feather=False, bg_color=(0, 0
     return _rectangle_lines(raw.convert("RGB"), width, feather=feather, bg_color=bg_color)
 
 
+def image_to_sixel(image_path, width=None, max_colors=256, alpha_threshold=128):
+    """Codifica la imagen como una secuencia Sixel: la terminal dibuja
+    la imagen de verdad, pixel por pixel, en vez de simularla con
+    caracteres de color. Sin escalones — calidad de foto real, si tu
+    terminal soporta Sixel (Windows Terminal, de forma experimental).
+    Los píxeles transparentes se dejan sin dibujar (no se pintan)."""
+    raw = _open_raw(image_path)
+    has_alpha = _has_alpha(raw)
+    img = raw.convert("RGBA") if has_alpha else raw.convert("RGB")
+
+    if width:
+        aspect = img.height / img.width
+        new_h = max(int(round(width * aspect)), 1)
+        img = img.resize((width, new_h), Image.LANCZOS)
+
+    w, h = img.size
+    rgb = img.convert("RGB")
+    alpha_px = img.split()[-1].load() if has_alpha else None
+
+    pal_img = rgb.convert("P", palette=Image.ADAPTIVE, colors=max_colors)
+    palette = pal_img.getpalette()
+    pal_px = pal_img.load()
+
+    out = ["\x1bPq", f'"1;1;{w};{h}']
+    for i in range(len(palette) // 3):
+        r, g, b = palette[i * 3: i * 3 + 3]
+        out.append(f"#{i};2;{round(r * 100 / 255)};{round(g * 100 / 255)};{round(b * 100 / 255)}")
+
+    for band_start in range(0, h, 6):
+        band_rows = min(6, h - band_start)
+        color_cols = {}
+        for x in range(w):
+            for r in range(band_rows):
+                y = band_start + r
+                if alpha_px and alpha_px[x, y] < alpha_threshold:
+                    continue
+                c = pal_px[x, y]
+                bits = color_cols.setdefault(c, [0] * w)
+                bits[x] |= 1 << r
+
+        first = True
+        for c in sorted(color_cols):
+            if not first:
+                out.append("$")
+            first = False
+            out.append(f"#{c}")
+            bits = color_cols[c]
+            i = 0
+            while i < w:
+                b = bits[i]
+                run = 1
+                while i + run < w and bits[i + run] == b:
+                    run += 1
+                ch = chr(0x3F + b)
+                out.append(f"!{run}{ch}" if run > 3 else ch * run)
+                i += run
+        out.append("-")
+
+    if out[-1] == "-":
+        out.pop()
+    out.append("\x1b\\")
+    return "".join(out)
+
+
 def print_ascii(lines, color=None):
     if color and color in COLOR_CODES:
         for line in lines:
@@ -210,6 +274,11 @@ def print_ascii(lines, color=None):
 def print_truecolor(lines):
     for line in lines:
         print(line)
+
+
+def print_sixel(data):
+    print(data, end="")
+    print()
 
 
 def save_ascii_txt(lines, output_path):
@@ -309,9 +378,10 @@ def main():
         description="Chef Code - Convierte una imagen en arte ASCII para tu terminal"
     )
     parser.add_argument("image", help="Ruta a la imagen (jpg, png, etc.)")
-    parser.add_argument("--width", type=int, default=100, help="Ancho del arte ASCII en caracteres (default: 100)")
+    parser.add_argument("--width", type=int, default=None, help="Ancho en caracteres (modo texto) o en píxeles reales (--sixel). Default: 100 en modo texto, 300 con --sixel.")
     parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor)")
     parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido, requiere una terminal con soporte truecolor (Windows Terminal, la mayoría de terminales modernas).")
+    parser.add_argument("--sixel", action="store_true", help="Dibuja la imagen real, pixel por pixel (protocolo Sixel), en vez de simularla con texto. Sin escalones — calidad de foto. Requiere una terminal con soporte Sixel (Windows Terminal 1.22+). Ignora --truecolor/--color/--invert/--feather.")
     parser.add_argument("--feather", action="store_true", help="Degrada los bordes hacia el color de fondo, en vez de cortar en un rectángulo duro. Solo aplica a fotos SIN transparencia; si el PNG ya tiene transparencia se ignora (se respeta esa transparencia real, sin caja).")
     parser.add_argument("--bg-color", default="0,0,0", help="Color de fondo de tu terminal como 'R,G,B' (default: 0,0,0 = negro), usado por --feather para fundir los bordes.")
     parser.add_argument("--invert", action="store_true", help="Invierte los tonos claros/oscuros (ignorado con --truecolor)")
@@ -323,8 +393,14 @@ def main():
     print("👨‍🍳 Cocinando tu arte ASCII...\n")
 
     bg_color = tuple(int(c.strip()) for c in args.bg_color.split(","))
+    if args.width is None:
+        args.width = 300 if args.sixel else 100
 
-    if args.truecolor:
+    if args.sixel:
+        data = image_to_sixel(args.image, width=args.width)
+        print_sixel(data)
+        lines = [data]
+    elif args.truecolor:
         lines = image_to_ansi_truecolor(args.image, width=args.width, feather=args.feather, bg_color=bg_color)
         print_truecolor(lines)
     else:
@@ -335,7 +411,7 @@ def main():
         save_ascii_txt(lines, args.save)
 
     if args.install:
-        install_permanent(lines, args.color or "white", truecolor=args.truecolor)
+        install_permanent(lines, args.color or "white", truecolor=args.truecolor or args.sixel)
 
 
 if __name__ == "__main__":
