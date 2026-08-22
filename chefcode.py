@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""
+Chef Code - Menú interactivo
+------------------------------
+Te pregunta qué quieres cargar (foto o video), te enseña una vista
+previa de cómo quedaría en tu terminal, y solo si te gusta lo deja
+guardado para que aparezca cada vez que la abras.
+
+Uso:
+    python chefcode.py
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixed"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "video"))
+
+import ascii_fixed
+import ascii_video
+
+
+def ask(prompt, default=None):
+    suffix = f" [{default}]" if default is not None else ""
+    resp = input(f"{prompt}{suffix}: ").strip()
+    return resp if resp else default
+
+
+def ask_path(prompt):
+    path = ask(prompt)
+    while not path or not os.path.exists(path):
+        path = ask("No encontré esa ruta, intenta de nuevo")
+    return path
+
+
+def ask_yes_no(prompt, default=True):
+    hint = "S/n" if default else "s/N"
+    resp = input(f"{prompt} ({hint}): ").strip().lower()
+    if not resp:
+        return default
+    return resp.startswith("s")
+
+
+def ask_int(prompt, default):
+    resp = ask(prompt, str(default))
+    try:
+        return int(resp)
+    except ValueError:
+        return default
+
+
+def run_photo():
+    path = ask_path("📷 Ruta de tu imagen (jpg, png...)")
+    width = ask_int("Ancho del arte en caracteres", 60)
+    feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
+
+    lines = ascii_fixed.image_to_ansi_truecolor(path, width=width, feather=feather, bg_color=(0, 0, 0))
+    print()
+    ascii_fixed.print_truecolor(lines)
+    print()
+
+    if ask_yes_no("¿Se ve bien? ¿Lo dejo fijo en tu terminal?", True):
+        ascii_fixed.install_permanent(lines, "white", truecolor=True)
+    else:
+        print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
+
+
+def run_video():
+    path = ask_path("🎬 Ruta de tu video o GIF")
+    width = ask_int("Ancho del arte en caracteres", 70)
+    fps = ask_int("FPS de reproducción", 15)
+    feather = ask_yes_no("¿Degradar los bordes hacia el fondo?", True)
+    max_frames_raw = ask("Límite de fotogramas a procesar (Enter = sin límite, recomendado para clips cortos)", "")
+    max_frames = int(max_frames_raw) if max_frames_raw else None
+
+    frames, _ = ascii_video.extract_frames(
+        path, width, invert=False, max_frames=max_frames,
+        truecolor=True, feather=feather, bg_color=(0, 0, 0),
+    )
+
+    print("▶️  Vista previa (una sola vuelta, Ctrl + C para saltarla)...\n")
+    ascii_video.play_ascii(frames, fps=fps, loop=False, truecolor=True)
+
+    if ask_yes_no("¿Se ve bien? ¿Lo dejo para que se reproduzca al abrir la terminal?", True):
+        ascii_video.install_permanent(path, width, fps, truecolor=True, feather=feather)
+    else:
+        print("Ok, no se guardó nada. Puedes correr 'python chefcode.py' de nuevo cuando quieras.")
+
+
+def main():
+    print("🍳 Chef Code - ASCII\n")
+    print("¿Qué quieres cargar?")
+    print("  1) Foto (fija)")
+    print("  2) Video / GIF (animado)")
+
+    choice = ask("Elige una opción", "1")
+
+    if choice.strip() == "2":
+        run_video()
+    else:
+        run_photo()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nOk, cancelado. No se guardó nada.")

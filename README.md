@@ -1,11 +1,6 @@
 # 👨‍🍳 Chef Code ASCII
 
-Convierte tus propias imágenes y videos en arte ASCII directamente en tu terminal.
-
-Dos herramientas, dos usos:
-
-- **`fixed/`** → convierte una **imagen** en ASCII y déjala **fija** en tu terminal (aparece cada vez que la abres).
-- **`video/`** → convierte un **video o GIF** en una **animación ASCII** que se reproduce en bucle (como los famosos `curl ascii.live/rick`, pero con tu propio contenido). Presiona `Ctrl + C` para detenerla.
+Convierte tus propias imágenes y videos en arte ASCII a color real directamente en tu terminal.
 
 Todo corre **localmente en tu computadora**. No se sube nada a ningún servidor — tu imagen o video nunca sale de tu PC.
 
@@ -21,6 +16,25 @@ Instala las dependencias:
 ```bash
 pip install -r requirements.txt
 ```
+
+---
+
+## 🚀 Empieza aquí: menú interactivo (`chefcode.py`)
+
+La forma más fácil de usar esto — no necesitas memorizar ningún flag:
+
+```bash
+python chefcode.py
+```
+
+Te pregunta:
+
+1. **¿Foto o video?**
+2. La ruta de tu archivo (y un par de opciones simples: ancho, si degradar los bordes, etc.)
+3. Te muestra la **vista previa** ahí mismo en tu terminal, a color real.
+4. Solo si te gusta cómo quedó, te pregunta si quieres **guardarlo** para que aparezca cada vez que abras la terminal.
+
+Por debajo usa las mismas dos herramientas de siempre — `fixed/` para imágenes y `video/` para animaciones — así que si prefieres controlar cada flag a mano, puedes seguir usándolas directamente (ver abajo).
 
 ---
 
@@ -68,7 +82,7 @@ Esto agrega el arte a tu perfil de PowerShell (`$PROFILE`). Cierra y vuelve a ab
 
 ## 🎬 2. Video animado (`video/ascii_video.py`)
 
-Convierte un video (mp4, mov) o GIF en una animación ASCII que se reproduce en bucle en tu terminal.
+Convierte un video (mp4, mov) o GIF en una animación ASCII que se reproduce en tu terminal. Igual que las fotos, soporta `--truecolor` (bloques a color real) y `--feather` (bordes degradados).
 
 ### Uso básico
 
@@ -82,20 +96,25 @@ python video/ascii_video.py mi_video.mp4
 |-----------------|------------------------------------------------------------|
 | `--width`       | Ancho del arte en caracteres (default: 80)                 |
 | `--fps`         | Velocidad de reproducción en fotogramas por segundo (default: 15) |
-| `--color`       | Color del texto                                            |
-| `--invert`      | Invierte tonos claros/oscuros                              |
+| `--color`       | Color del texto (ignorado con `--truecolor`)               |
+| `--truecolor`   | Renderiza con bloques `▀` a color real (24-bit), igual que en las fotos |
+| `--feather`     | Solo con `--truecolor`. Degrada los bordes de cada fotograma hacia el fondo |
+| `--bg-color`    | Color de fondo como `"R,G,B"` (default: `0,0,0`), usado por `--feather` |
+| `--invert`      | Invierte tonos claros/oscuros (ignorado con `--truecolor`) |
 | `--once`        | Reproduce una sola vez en vez de en bucle infinito          |
 | `--max-frames`  | Límite de fotogramas a procesar (útil para videos largos)  |
+| `--install`     | Deja el video instalado para que se reproduzca al abrir la terminal |
 
-### Ejemplo
+### Ejemplo: a color real, con bordes degradados
 
 ```bash
-python video/ascii_video.py mi_video.mp4 --width 90 --fps 12 --color red
+python video/ascii_video.py mi_video.mp4 --width 70 --truecolor --feather --once
 ```
 
 Presiona **Ctrl + C** en cualquier momento para detener la animación.
 
 > 💡 Tip: videos cortos (5-15 segundos) funcionan mejor. Videos muy largos tardan más en procesarse antes de reproducirse.
+> ⚠️ A diferencia de una imagen fija, `--install` en el video vuelve a correr Python cada vez que abres la terminal (con `--once`, para no bloquear la sesión en un loop infinito). Necesitas Python y las dependencias de este proyecto instaladas en la máquina donde uses la terminal.
 
 ---
 
