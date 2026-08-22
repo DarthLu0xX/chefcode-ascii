@@ -168,7 +168,7 @@ def extract_frames_sixel(path, width, max_frames=None):
         print(f"❌ No se encontró el archivo: {path}")
         sys.exit(1)
 
-    print("👨‍🍳 Cocinando los fotogramas, un momento...")
+    print("👨‍🍳 Cocinando los fotogramas, un momento...", flush=True)
 
     frames = []
     fps = 15
@@ -207,7 +207,7 @@ def extract_frames_sixel(path, width, max_frames=None):
         print("❌ No se pudieron extraer fotogramas.")
         sys.exit(1)
 
-    print(f"✅ {len(frames)} fotogramas listos.\n")
+    print(f"✅ {len(frames)} fotogramas listos.\n", flush=True)
     return frames, fps
 
 
@@ -226,7 +226,7 @@ def extract_frames(video_path, width, invert=False, max_frames=None,
     frames = []
     count = 0
 
-    print("👨‍🍳 Cocinando los fotogramas, un momento...")
+    print("👨‍🍳 Cocinando los fotogramas, un momento...", flush=True)
 
     while True:
         ret, frame = cap.read()
@@ -246,7 +246,7 @@ def extract_frames(video_path, width, invert=False, max_frames=None,
         print("❌ No se pudieron extraer fotogramas del video.")
         sys.exit(1)
 
-    print(f"✅ {len(frames)} fotogramas listos.\n")
+    print(f"✅ {len(frames)} fotogramas listos.\n", flush=True)
     return frames, source_fps
 
 
@@ -380,7 +380,7 @@ def main():
 
     fps = args.fps or source_fps or 15
 
-    print("▶️  Reproduciendo... (Ctrl + C para detener)\n")
+    print("▶️  Reproduciendo... (Ctrl + C para detener)\n", flush=True)
     time.sleep(1)
 
     play_ascii(frames, fps=fps, color=args.color, loop=not args.once, truecolor=args.truecolor, sixel=args.sixel)
