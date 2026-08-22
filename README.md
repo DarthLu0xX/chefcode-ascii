@@ -147,6 +147,7 @@ Presiona **Ctrl + C** en cualquier momento para detener la animación.
 > 💡 Tip: videos cortos (5-15 segundos) funcionan mejor. Videos muy largos tardan más en procesarse antes de reproducirse.
 > ⚠️ A diferencia de una imagen fija, `--install` en el video vuelve a correr Python cada vez que abres la terminal (con `--once`, para no bloquear la sesión en un loop infinito). Necesitas Python y las dependencias de este proyecto instaladas en la máquina donde uses la terminal.
 > ⚠️ `--sixel` en video es más lento de procesar que `--truecolor` (cada fotograma se cuantiza a color real). Con `--install`, eso significa que **cada terminal nueva tarda esos mismos segundos en aparecer** antes de reproducir la animación — para un GIF de ~50 fotogramas cuenta con varios segundos de espera. Si te importa más la velocidad de arranque que la calidad, usa `--truecolor` en su lugar, o `--max-frames` para recortar el clip.
+> ⚠️ `--split-pane` necesita el comando `wt` disponible (viene con Windows Terminal instalado desde Microsoft Store o winget) y que abras tu terminal **como Windows Terminal**, no la consola clásica — si no, `wt` puede no encontrar una ventana donde dividir el panel.
 
 ---
 
