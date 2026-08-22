@@ -102,16 +102,60 @@ def _vignette_alpha(x, y, w, h, inner=0.72, outer=1.05):
     return 1.0 - _smoothstep(inner, outer, r)
 
 
-def image_to_ansi_truecolor(image_path, width=100, feather=False, bg_color=(0, 0, 0)):
-    """Convierte una imagen a líneas con bloques semi-carácter (▀) a
-    color verdadero (24-bit). Cada carácter representa 2 píxeles
-    verticales: el color de fondo es el píxel de abajo y el de
-    primer plano el de arriba. Mucho más fiel que el ASCII por brillo."""
-    img = _open_flattened(image_path, bg_color)
+def _open_raw(image_path):
+    try:
+        return Image.open(image_path)
+    except FileNotFoundError:
+        print(f"❌ No se encontró la imagen: {image_path}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error al abrir la imagen: {e}")
+        sys.exit(1)
 
-    aspect_ratio = img.height / img.width
+
+def _has_alpha(img):
+    return img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+
+
+def _resize_out_height(width, aspect_ratio):
     out_height = int(round(width * aspect_ratio))
-    out_height = max(out_height + (out_height % 2), 2)
+    return max(out_height + (out_height % 2), 2)
+
+
+def _sticker_lines(img, width, alpha_threshold=128):
+    """Renderiza respetando la transparencia real del PNG: donde el
+    píxel es transparente no se imprime ningún color de fondo, así se
+    ve el fondo nativo de la terminal en vez de un rectángulo sólido —
+    como una estampa pegada, no una foto con marco."""
+    out_height = _resize_out_height(width, img.height / img.width)
+    img = img.resize((width, out_height), Image.LANCZOS)
+    px = img.load()
+
+    lines = []
+    for y in range(0, out_height, 2):
+        parts = []
+        for x in range(width):
+            r1, g1, b1, a1 = px[x, y]
+            r2, g2, b2, a2 = px[x, y + 1]
+            top_opaque = a1 >= alpha_threshold
+            bot_opaque = a2 >= alpha_threshold
+            if not top_opaque and not bot_opaque:
+                parts.append("\033[0m ")
+            elif top_opaque and bot_opaque:
+                parts.append(f"\033[0m\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀")
+            elif top_opaque:
+                parts.append(f"\033[0m\033[38;2;{r1};{g1};{b1}m▀")
+            else:
+                parts.append(f"\033[0m\033[38;2;{r2};{g2};{b2}m▄")
+        parts.append("\033[0m")
+        lines.append("".join(parts))
+    return lines
+
+
+def _rectangle_lines(img, width, feather=False, bg_color=(0, 0, 0)):
+    """Renderiza como rectángulo sólido (para fotos sin transparencia),
+    con degradado opcional de los bordes hacia bg_color."""
+    out_height = _resize_out_height(width, img.height / img.width)
     img = img.resize((width, out_height), Image.LANCZOS)
     pixels = img.load()
     bg_r, bg_g, bg_b = bg_color
@@ -137,6 +181,21 @@ def image_to_ansi_truecolor(image_path, width=100, feather=False, bg_color=(0, 0
         row.append("\033[0m")
         lines.append("".join(row))
     return lines
+
+
+def image_to_ansi_truecolor(image_path, width=100, feather=False, bg_color=(0, 0, 0)):
+    """Convierte una imagen a líneas con bloques semi-carácter (▀) a
+    color verdadero (24-bit). Si la imagen tiene transparencia (PNG
+    recortado), respeta esa transparencia de verdad — sin rectángulo
+    de fondo — en vez de rellenarla con un color sólido."""
+    raw = _open_raw(image_path)
+
+    if _has_alpha(raw):
+        if feather:
+            print("ℹ️  --feather se ignora: la imagen ya tiene transparencia real, no necesita degradado artificial.")
+        return _sticker_lines(raw.convert("RGBA"), width)
+
+    return _rectangle_lines(raw.convert("RGB"), width, feather=feather, bg_color=bg_color)
 
 
 def print_ascii(lines, color=None):
@@ -253,7 +312,7 @@ def main():
     parser.add_argument("--width", type=int, default=100, help="Ancho del arte ASCII en caracteres (default: 100)")
     parser.add_argument("--color", choices=list(COLOR_CODES.keys())[:-1], default=None, help="Color del texto (ignorado con --truecolor)")
     parser.add_argument("--truecolor", action="store_true", help="Usa bloques a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido, requiere una terminal con soporte truecolor (Windows Terminal, la mayoría de terminales modernas).")
-    parser.add_argument("--feather", action="store_true", help="Degrada los bordes de la imagen hacia el color de fondo, en vez de cortar en un rectángulo duro (solo con --truecolor).")
+    parser.add_argument("--feather", action="store_true", help="Degrada los bordes hacia el color de fondo, en vez de cortar en un rectángulo duro. Solo aplica a fotos SIN transparencia; si el PNG ya tiene transparencia se ignora (se respeta esa transparencia real, sin caja).")
     parser.add_argument("--bg-color", default="0,0,0", help="Color de fondo de tu terminal como 'R,G,B' (default: 0,0,0 = negro), usado por --feather para fundir los bordes.")
     parser.add_argument("--invert", action="store_true", help="Invierte los tonos claros/oscuros (ignorado con --truecolor)")
     parser.add_argument("--install", action="store_true", help="Deja el arte fijo en tu terminal (PowerShell)")

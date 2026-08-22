@@ -55,11 +55,13 @@ python fixed/ascii_fixed.py mi_imagen.jpg
 | `--width`     | Ancho del arte en caracteres (default: 100)               |
 | `--color`     | Color del texto: red, green, yellow, blue, magenta, cyan, white (ignorado con `--truecolor`) |
 | `--truecolor` | Renderiza con bloques `▀` a color real (24-bit) en vez de ASCII por brillo. Se ve mucho más nítido — recomendado si tu terminal soporta color de 24 bits (Windows Terminal, la mayoría de terminales modernas) |
-| `--feather`   | Solo con `--truecolor`. Degrada los bordes de la imagen hacia el color de fondo en vez de cortar en un rectángulo duro |
+| `--feather`   | Solo para fotos **sin** transparencia. Degrada los bordes hacia el color de fondo en vez de cortar en un rectángulo duro |
 | `--bg-color`  | Color de fondo de tu terminal como `"R,G,B"` (default: `0,0,0` = negro), usado por `--feather` |
 | `--invert`    | Invierte tonos claros/oscuros (ignorado con `--truecolor`) |
 | `--save`      | Guarda el resultado como archivo `.txt`                    |
 | `--install`   | Deja el arte fijo en tu terminal (aparece cada vez que la abres) |
+
+Si tu imagen es un **PNG con transparencia** (por ejemplo un recorte hecho con `remove.bg`), `--truecolor` respeta esa transparencia de verdad: no pinta ningún rectángulo de fondo, solo la silueta — como una estampa pegada en la terminal, no una foto con marco. `--feather` no aplica en ese caso (se ignora automáticamente) porque el recorte ya trae su propio borde limpio.
 
 ### Ejemplo: dejarlo fijo en tu terminal (modo clásico)
 
@@ -67,10 +69,10 @@ python fixed/ascii_fixed.py mi_imagen.jpg
 python fixed/ascii_fixed.py mi_logo.png --width 80 --color red --install
 ```
 
-### Ejemplo: a color real, con bordes degradados (recomendado)
+### Ejemplo: a color real (recomendado)
 
 ```bash
-python fixed/ascii_fixed.py mi_logo.png --width 60 --truecolor --feather --install
+python fixed/ascii_fixed.py mi_logo.png --width 90 --truecolor --install
 ```
 
 Esto agrega el arte a tu perfil de PowerShell (`$PROFILE`). Cierra y vuelve a abrir la terminal para verlo.
